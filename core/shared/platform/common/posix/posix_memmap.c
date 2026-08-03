@@ -296,6 +296,15 @@ os_icache_flush(void *start, size_t len)
 {
 #if defined(__APPLE__) || defined(__MACH__)
     sys_icache_invalidate(start, len);
+#elif defined(BH_PLATFORM_QNX)
+    {
+        /* QNX's msync() makes the instruction cache coherent with memory */
+        uintptr_t page = (uintptr_t)getpagesize();
+        uintptr_t begin = (uintptr_t)start & ~(page - 1);
+
+        msync((void *)begin, (uintptr_t)start + len - begin,
+              MS_INVALIDATE_ICACHE);
+    }
 #else
     (void)start;
     (void)len;

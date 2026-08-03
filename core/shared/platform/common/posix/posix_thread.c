@@ -418,7 +418,7 @@ uint8 *
 os_thread_get_stack_boundary()
 {
     pthread_t self;
-#ifdef __linux__
+#if defined(__linux__) || defined(BH_PLATFORM_QNX)
     pthread_attr_t attr;
     size_t guard_size;
 #endif
@@ -439,7 +439,7 @@ os_thread_get_stack_boundary()
     if (max_stack_size < APP_THREAD_STACK_SIZE_DEFAULT)
         max_stack_size = APP_THREAD_STACK_SIZE_DEFAULT;
 
-#ifdef __linux__
+#if defined(__linux__) || defined(BH_PLATFORM_QNX)
     if (pthread_getattr_np(self, &attr) == 0) {
         pthread_attr_getstack(&attr, (void **)&addr, &stack_size);
         pthread_attr_getguardsize(&attr, &guard_size);

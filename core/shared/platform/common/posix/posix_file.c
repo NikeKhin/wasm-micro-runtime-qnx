@@ -1050,7 +1050,7 @@ os_ioctl(os_file_handle handle, int request, ...)
     va_list args;
 
     va_start(args, request);
-    ret = ioctl(handle, request, args);
+    ret = ioctl(handle, request, va_arg(args, void *));
     va_end(args);
 
     return ret;

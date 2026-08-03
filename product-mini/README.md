@@ -477,3 +477,26 @@ Run like
 ``` Bash
 ./build/iwasm.com <wasm file>
 ```
+
+## QNX
+
+AArch64 QNX Neutrino 7.1 and 8.0 are supported with relibc's QNX port as the C library, so no QNX SDP is needed. iwasm is linked statically against it with an `aarch64-none-elf` GCC, such as the one in the [Arm GNU Toolchain](https://developer.arm.com/downloads/-/arm-gnu-toolchain-downloads); relibc's headers currently need GCC.
+
+First build relibc for the QNX release. With [cbindgen](https://github.com/mozilla/cbindgen) on the `PATH`, `qnx/build-qnx.sh` also writes the headers into the sysroot it lays out:
+``` Bash
+cd <relibc>
+qnx/build-qnx.sh # QNX 7.1
+TARGET_SPEC=targets/aarch64-unknown-nto-qnx800.json qnx/build-qnx.sh # QNX 8.0
+```
+
+Then build iwasm for the same release, with `aarch64-none-elf-gcc` on the `PATH` or given with `-DCMAKE_C_COMPILER`:
+``` Bash
+cd product-mini/platforms/qnx
+cmake -B build -DCMAKE_TOOLCHAIN_FILE=$PWD/relibc_toolchain.cmake \
+      -DRELIBC_QNX_DIR=<relibc> -DQNX_VERSION=7.1 # or 8.0
+cmake --build build
+```
+
+Hardware bound checks cover linear memory only: the native stack half (`WAMR_DISABLE_STACK_HW_BOUND_CHECK`) needs an alternate signal stack, which relibc can't install on QNX 7.1. So compile AOT modules with `wamrc --target=aarch64 --stack-bounds-checks=1`, and also with `--bounds-checks=1` if iwasm is built with `WAMR_DISABLE_HW_BOUND_CHECK=1`; otherwise their stack or memory accesses aren't checked. Native stack overflow is detected as on Linux; this needs a relibc that reports the main thread's stack from `pthread_getattr_np()`.
+
+Loading AOT modules maps executable memory, which needs the `PROCMGR_AID_PROT_EXEC` ability. The instruction cache is synchronized with `msync(MS_INVALIDATE_ICACHE)` and threads are named with `pthread_setname_np()`, both of which relibc's QNX port provides.
